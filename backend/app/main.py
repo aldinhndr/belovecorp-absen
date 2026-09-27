@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -24,7 +25,12 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app = FastAPI(
+    title=settings.app_name, 
+    description="API untuk Sistem Manajemen Absensi & Laporan BeloveCorp",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,6 +48,12 @@ app.include_router(schedules.router)
 app.include_router(admin.router)
 
 
-@app.get("/health")
+@app.get("/", include_in_schema=False)
+def read_root():
+    """Redirect ke dokumentasi interaktif Swagger UI"""
+    return RedirectResponse(url="/docs")
+
+
+@app.get("/health", tags=["System"])
 def health():
     return {"status": "ok", "app": settings.app_name}
