@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Segoe UI", system-ui, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+  --color-brand: #663532;
+  --color-brand-dark: #472220;
+  --color-ink: #331816;
+  --color-muted: #8c5d5b;
+  --color-line: #f2d8d7;
+  --color-warn: #b45309;
+  --color-danger: #b91c1c;
+  --color-ok: #15803d;
+  --color-accent: #Cf8085;
+  --color-accent-dark: #663532;
+  --color-paper: #fdf8f8;
+  --shadow-card: 0 10px 30px rgba(102, 53, 50, 0.06);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply m-0 min-h-full;
+  }
+  body {
+    @apply bg-[#fdf6f6] font-sans text-ink antialiased;
+    background-image: radial-gradient(1200px 600px at 10% -10%, #EBC5C4, transparent);
+  }
+  a {
+    @apply text-inherit no-underline;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-[18px] border border-line bg-white p-[18px] shadow-card;
+  }
+  .row {
+    @apply flex flex-wrap items-center gap-2.5;
+  }
+  .stack {
+    @apply grid gap-3;
+  }
+  .muted {
+    @apply text-sm text-muted;
+  }
+  .brand {
+    @apply text-xs font-bold uppercase tracking-[0.08em] text-brand;
+  }
+  .btn {
+    @apply cursor-pointer rounded-xl border-0 bg-brand px-4 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-55 hover:bg-[#522927] transition-colors;
+  }
+  .btn-secondary {
+    @apply bg-[#fceeee] text-brand-dark hover:bg-[#f7dddd];
+  }
+  .btn-danger {
+    @apply bg-danger text-white;
+  }
+  .btn-block {
+    @apply w-full;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-white p-3 outline-none focus:border-brand;
+  }
+  .label {
+    @apply mb-1.5 block text-[13px] font-bold text-muted;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold;
+  }
+  .badge-ok {
+    @apply bg-rose-100 text-[#663532];
+  }
+  .badge-warn {
+    @apply bg-amber-100 text-warn;
+  }
+  .badge-danger {
+    @apply bg-red-100 text-danger;
+  }
+  .list-item {
+    @apply rounded-[14px] border border-line bg-white p-3;
+  }
+  .thumb {
+    @apply h-14 w-14 rounded-lg object-cover;
+  }
+  .error {
+    @apply text-sm text-danger;
+  }
+  .success {
+    @apply text-sm text-brand;
+  }
+  .nav-link {
+    @apply shrink-0 whitespace-nowrap rounded-full bg-[#fceeee] px-3.5 py-2 text-sm font-semibold text-muted no-underline;
+  }
+  .nav-link.active {
+    @apply bg-brand text-white;
+  }
+  .journal-card {
+    @apply relative rounded-[18px] border border-[#f2d8d7] bg-linear-to-b from-paper to-white px-[18px] py-3 pl-[22px] shadow-[0_10px_24px_rgba(102,53,50,0.05)];
+    background-image:
+      repeating-linear-gradient(transparent, transparent 27px, rgba(207, 128, 133, 0.08) 28px),
+      linear-gradient(180deg, #fdf8f8, #fff);
+  }
+  .journal-card::before {
+    content: "";
+    @apply absolute top-2.5 bottom-2.5 left-2 w-1 rounded-full bg-brand;
+  }
+}
