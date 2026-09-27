@@ -14,3 +14,13 @@ services:
         value: Asia/Jakarta
       - key: PYTHON_VERSION
         value: 3.10.0
+
+  - type: web
+    name: belove-absen-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_URL
+        value: https://belovecorp-absen.onrender.com
