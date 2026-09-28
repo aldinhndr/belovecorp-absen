@@ -5,12 +5,15 @@ const HARI = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 function sevenDaysAgo() {
   const d = new Date();
   d.setDate(d.getDate() - 6);
-  return d.toISOString().slice(0, 10);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 function fmtDate(iso) {
   const d = new Date(`${iso}T00:00:00`);

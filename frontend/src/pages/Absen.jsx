@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { api } from "../api/client";
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 const STEP = { PERMISSION: "permission", SCAN: "scan", PHOTO: "photo", PREVIEW: "preview", DONE: "done" };
 
 // Class yang dipakai berulang

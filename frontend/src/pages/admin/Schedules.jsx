@@ -20,7 +20,11 @@ export default function AdminSchedules() {
   // Form Absen Manual Admin
   const [manualUser, setManualUser] = useState("");
   const [manualType, setManualType] = useState("masuk");
-  const [manualDate, setManualDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [manualDate, setManualDate] = useState(() => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
   const [manualTime, setManualTime] = useState("08:00");
   const [manualSubmitting, setManualSubmitting] = useState(false);
 

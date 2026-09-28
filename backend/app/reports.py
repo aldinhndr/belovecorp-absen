@@ -34,9 +34,9 @@ def now_wib() -> datetime:
 
 
 def day_range(target: date) -> tuple[datetime, datetime]:
-    start = datetime.combine(target, time.min).replace(tzinfo=tz())
-    end = datetime.combine(target, time.max).replace(tzinfo=tz())
-    return start.replace(tzinfo=None), end.replace(tzinfo=None)
+    start = datetime.combine(target, time.min)
+    end = datetime.combine(target, time.max)
+    return start, end
 
 
 def format_tanggal(target: date) -> str:
