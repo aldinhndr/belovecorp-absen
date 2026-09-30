@@ -57,13 +57,11 @@ try:
         pool_use_lifo=True,
         connect_args={
             "sslmode": "require",
+            "connect_timeout": 10,
             "options": "-c timezone=Asia/Jakarta",
         },
     )
-    # Attempt a connection to validate the engine configuration early
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1"))
-    logger.info("Database connection pool initialized and connection tested successfully.")
+    logger.info("Database engine created.")
 except OperationalError as e:
     logger.critical(f"Failed to connect to the database at startup: {e}")
     raise ConnectionError(f"Failed to connect to the database at startup: {e}") from e

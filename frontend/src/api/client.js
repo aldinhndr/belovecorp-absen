@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL;
+const API_BASE = import.meta.env.VITE_API_URL || "https://belovecorp-absen.onrender.com";
 
 export function getToken() {
   return localStorage.getItem("ba_token");
@@ -24,15 +24,26 @@ export function getStoredUser() {
 
 async function request(path, options = {}) {
   const headers = { ...(options.headers || {}) };
+  const isLogin = path.startsWith("/auth/login");
   const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token && !isLogin) headers.Authorization = `Bearer ${token}`;
   if (options.body && !(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error("Koneksi dibatalkan. Coba login lagi.");
+    }
+    throw new Error("Tidak bisa terhubung ke server. Coba beberapa detik lagi.");
+  }
   if (res.status === 401) {
     clearSession();
-    if (!path.startsWith("/auth/login")) window.location.hash = "#/login";
+    if (!isLogin && window.location.pathname !== "/login") {
+      window.location.replace("/login");
+    }
   }
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));

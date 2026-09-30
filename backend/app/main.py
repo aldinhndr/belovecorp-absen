@@ -26,10 +26,11 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title=settings.app_name, 
+    title=settings.app_name,
     description="API untuk Sistem Manajemen Absensi & Laporan BeloveCorp",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 app.add_middleware(
@@ -38,6 +39,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=86400,
 )
 
 app.mount("/uploads", StaticFiles(directory=str(settings.upload_path)), name="uploads")

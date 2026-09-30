@@ -58,7 +58,9 @@ export default function Login() {
     const token = getToken();
     if (user && token) {
       navigate(user.role === "admin" ? "/admin" : "/", { replace: true });
+      return;
     }
+    fetch(`${import.meta.env.VITE_API_URL || "https://belovecorp-absen.onrender.com"}/health`).catch(() => {});
   }, [navigate]);
 
   const handleSubmit = async (e) => {
@@ -72,10 +74,21 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      const data = await api.login(email, password);
+      let data;
+      let lastError;
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          data = await api.login(email, password);
+          break;
+        } catch (err) {
+          lastError = err;
+          if (attempt < 3) {
+            await new Promise((r) => setTimeout(r, 1500 * attempt));
+          }
+        }
+      }
       if (!data?.access_token || !data?.user) {
-        setError("Login gagal. Respons server tidak valid.");
-        return;
+        throw lastError || new Error("Login gagal. Respons server tidak valid.");
       }
       setSession(data.access_token, data.user);
       navigate(data.user.role === "admin" ? "/admin" : "/", { replace: true });

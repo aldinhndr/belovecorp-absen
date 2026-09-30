@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { getStoredUser } from "./api/client";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
@@ -21,21 +21,6 @@ function RequireAuth({ children, admin }) {
 }
 
 export default function App() {
-  const navigate = useNavigate();
-  
-  // Handle redirect from /login if already authenticated
-  const storedUser = getStoredUser();
-  if (storedUser) {
-    // If we're on /login page but already authenticated, redirect to appropriate page
-    if (window.location.pathname === '/login') {
-      navigate(storedUser.role === "admin" ? "/admin" : "/", { replace: true });
-    }
-    // If we're on /admin or /admin/* pages but not admin, redirect to / (only once)
-    if (storedUser.role !== "admin" && window.location.pathname.startsWith("/admin")) {
-      navigate("/", { replace: true });
-    }
-  }
-
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
