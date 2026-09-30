@@ -50,11 +50,15 @@ logger.info(f"Connecting to database using URL (sanitized): {DATABASE_URL.split(
 try:
     engine = create_engine(
         DATABASE_URL,
-        pool_pre_ping=True,      # Validasi soket TCP sebelum transaksi
+        pool_pre_ping=True,
         pool_size=5,
         max_overflow=5,
-        pool_recycle=1800,       # Atur pool_recycle di bawah batas waktu putus koneksi bawaan server (30 menit)
-        # pool_timeout=30,       # Default is 30 seconds, usually sufficient
+        pool_recycle=1800,
+        pool_use_lifo=True,
+        connect_args={
+            "sslmode": "require",
+            "options": "-c timezone=Asia/Jakarta",
+        },
     )
     # Attempt a connection to validate the engine configuration early
     with engine.connect() as connection:

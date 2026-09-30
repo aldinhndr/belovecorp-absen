@@ -1,5 +1,6 @@
+import logging
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -14,6 +15,7 @@ from app.schemas import AttendanceOut, RandomItemOut
 from app.security import get_current_user
 
 router = APIRouter(tags=["attendance"])
+logger = logging.getLogger(__name__)
 
 ALLOWED_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/jpg": ".jpg"}
 
@@ -75,43 +77,36 @@ def submit_attendance(
     now = now_wib().replace(tzinfo=None)
     start, end = day_range(now.date())
 
-    # Validasi Jadwal Kerja (Khusus Karyawan, Admin Bebas)
     if current_user.role == UserRole.karyawan:
         day_name = HARI_ID[now.weekday()]
         sch = db.query(Schedule).filter(
             Schedule.user_id == current_user.id,
             Schedule.day_of_week == day_name,
         ).first()
-
-        if not sch:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Anda tidak memiliki jadwal kerja hari ini ({day_name}). Silakan lapor ke Admin."
-            )
-
-        now_time = now.time()
-        st_dt = datetime.combine(now.date(), sch.start_time)
-        et_dt = datetime.combine(now.date(), sch.end_time)
-
-        # Toleransi 1 jam
-        if tipe == AttendanceType.masuk:
-            earliest = (st_dt - timedelta(hours=1)).time()
-            latest = (st_dt + timedelta(hours=1)).time()
-            if not (earliest <= now_time <= latest):
-                st_str = sch.start_time.strftime("%H:%M")
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Absen masuk di luar toleransi (Jadwal: {st_str}, Toleransi 1 jam). Terlambat/terlalu cepat? Silakan lapor Admin."
-                )
-        elif tipe == AttendanceType.pulang:
-            earliest = (et_dt - timedelta(hours=1)).time()
-            latest = (et_dt + timedelta(hours=1)).time()
-            if not (earliest <= now_time <= latest):
-                et_str = sch.end_time.strftime("%H:%M")
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Absen pulang di luar toleransi (Jadwal pulang: {et_str}, Toleransi 1 jam). Silakan lapor Admin."
-                )
+        if sch:
+            now_time = now.time()
+            st_dt = datetime.combine(now.date(), sch.start_time)
+            et_dt = datetime.combine(now.date(), sch.end_time)
+            if tipe == AttendanceType.masuk:
+                earliest = (st_dt - timedelta(hours=1)).time()
+                latest = (st_dt + timedelta(hours=1)).time()
+                if not (earliest <= now_time <= latest):
+                    logger.warning(
+                        "Absen masuk di luar toleransi user=%s jadwal=%s waktu=%s",
+                        current_user.id,
+                        sch.start_time,
+                        now_time,
+                    )
+            elif tipe == AttendanceType.pulang:
+                earliest = (et_dt - timedelta(hours=1)).time()
+                latest = (et_dt + timedelta(hours=1)).time()
+                if not (earliest <= now_time <= latest):
+                    logger.warning(
+                        "Absen pulang di luar toleransi user=%s jadwal=%s waktu=%s",
+                        current_user.id,
+                        sch.end_time,
+                        now_time,
+                    )
 
     existing = (
         db.query(Attendance)
@@ -133,9 +128,12 @@ def submit_attendance(
             latitude, longitude, current_user.store.latitude, current_user.store.longitude
         )
         if jarak > current_user.store.radius_meter:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Lokasi absen di luar jangkauan (Jarak: {round(jarak)}m. Maks: {current_user.store.radius_meter}m)."
+            di_luar = True
+            logger.warning(
+                "Absen di luar radius user=%s jarak=%sm maks=%sm",
+                current_user.id,
+                round(jarak),
+                current_user.store.radius_meter,
             )
 
     foto_path = _save_photo(foto)
