@@ -95,6 +95,7 @@ export const api = {
   users: () => request("/admin/users"),
   createUser: (body) => request("/admin/users", { method: "POST", body: JSON.stringify(body) }),
   updateUser: (id, body) => request(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteUser: (id) => request(`/admin/users/${id}`, { method: "DELETE" }),
   schedules: () => request("/schedules"),
   mySchedules: () => request("/schedules/me"),
   adminSchedules: (userId) => request(`/admin/schedules${userId ? `?user_id=${userId}` : ""}`),

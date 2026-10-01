@@ -32,6 +32,17 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm("Hapus karyawan ini beserta semua data absen & jadwalnya?")) return;
+    setError("");
+    try {
+      await api.deleteUser(id);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const karyawan = rows.filter((u) => u.role === "karyawan");
   const admins = rows.filter((u) => u.role === "admin");
 
@@ -106,13 +117,22 @@ export default function AdminUsers() {
                     </span>
                   </td>
                   <td className="px-5 py-3">
-                    <button
-                      type="button"
-                      className={`btn text-xs py-1.5 px-3 ${u.is_active ? "btn-secondary" : "btn-secondary"}`}
-                      onClick={() => api.updateUser(u.id, { is_active: !u.is_active }).then(load)}
-                    >
-                      {u.is_active ? "Nonaktifkan" : "Aktifkan"}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className={`btn text-xs py-1.5 px-3 ${u.is_active ? "btn-secondary" : "btn-secondary"}`}
+                        onClick={() => api.updateUser(u.id, { is_active: !u.is_active }).then(load)}
+                      >
+                        {u.is_active ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn text-xs py-1.5 px-3 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                        onClick={() => handleDelete(u.id)}
+                      >
+                        Hapus
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -150,13 +170,22 @@ export default function AdminUsers() {
                     </span>
                   </td>
                   <td className="px-5 py-3">
-                    <button
-                      type="button"
-                      className="btn btn-secondary text-xs py-1.5 px-3"
-                      onClick={() => api.updateUser(u.id, { is_active: !u.is_active }).then(load)}
-                    >
-                      {u.is_active ? "Nonaktifkan" : "Aktifkan"}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className={`btn text-xs py-1.5 px-3 ${u.is_active ? "btn-secondary" : "btn-secondary"}`}
+                        onClick={() => api.updateUser(u.id, { is_active: !u.is_active }).then(load)}
+                      >
+                        {u.is_active ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn text-xs py-1.5 px-3 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                        onClick={() => handleDelete(u.id)}
+                      >
+                        Hapus
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
