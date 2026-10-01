@@ -268,6 +268,27 @@ def update_user(
     return db.query(User).options(joinedload(User.store)).filter(User.id == user_id).first()
 
 
+@router.delete("/users/{user_id}", status_code=204)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Karyawan tidak ditemukan")
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="Tidak dapat menghapus akun sendiri")
+    
+    # Hapus semua relasi dulu agar bisa dihapus (cascade delete manual)
+    db.query(Attendance).filter(Attendance.user_id == user_id).delete()
+    db.query(Activity).filter(Activity.user_id == user_id).delete()
+    db.query(Schedule).filter(Schedule.user_id == user_id).delete()
+    
+    db.delete(user)
+    db.commit()
+    return None
+
 # --- SCHEDULES ---
 @router.get("/schedules", response_model=list[ScheduleOut])
 def list_schedules(user_id: int | None = None, db: Session = Depends(get_db)):
@@ -278,7 +299,7 @@ def list_schedules(user_id: int | None = None, db: Session = Depends(get_db)):
 
 
 @router.post("/schedules", response_model=ScheduleOut, status_code=201)
-def create_or_update_schedule(payload: ScheduleCreate, db: Session = Depends(get_db)):
+def create_schedule(payload: ScheduleCreate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == payload.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
@@ -291,24 +312,13 @@ def create_or_update_schedule(payload: ScheduleCreate, db: Session = Depends(get
     except Exception:
         raise HTTPException(status_code=400, detail="Format jam harus HH:MM (misal 08:00)")
 
-    existing = db.query(Schedule).filter(
-        Schedule.user_id == payload.user_id,
-        Schedule.day_of_week == payload.day_of_week,
-    ).first()
-
-    if existing:
-        existing.start_time = st
-        existing.end_time = et
-        record = existing
-    else:
-        record = Schedule(
-            user_id=payload.user_id,
-            day_of_week=payload.day_of_week,
-            start_time=st,
-            end_time=et,
-        )
-        db.add(record)
-
+    record = Schedule(
+        user_id=payload.user_id,
+        day_of_week=payload.day_of_week,
+        start_time=st,
+        end_time=et,
+    )
+    db.add(record)
     db.commit()
     return db.query(Schedule).options(joinedload(Schedule.user)).filter(Schedule.id == record.id).first()
 
