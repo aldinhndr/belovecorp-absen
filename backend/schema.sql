@@ -76,6 +76,5 @@ CREATE TABLE IF NOT EXISTS schedules (
   end_time TIME NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_schedule_user_day (user_id, day_of_week),
   CONSTRAINT fk_schedules_user FOREIGN KEY (user_id) REFERENCES users(id)
 );

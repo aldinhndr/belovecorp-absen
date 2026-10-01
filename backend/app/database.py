@@ -90,6 +90,12 @@ def ensure_schema() -> None:
             conn.execute(
                 text("ALTER TABLE random_items ADD COLUMN qr_token VARCHAR(64) NULL UNIQUE")
             )
+        
+        # Remove unique constraint on user_day if exists
+        try:
+            conn.execute(text("ALTER TABLE schedules DROP CONSTRAINT IF EXISTS uq_schedule_user_day"))
+        except Exception as e:
+            logger.warning("Could not drop constraint: %s", e)
 
 
 def get_db() -> Generator[Session, None, None]:

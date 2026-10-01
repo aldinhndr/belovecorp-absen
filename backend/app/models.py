@@ -112,7 +112,6 @@ class Activity(Base):
 
 class Schedule(Base):
     __tablename__ = "schedules"
-    __table_args__ = (UniqueConstraint("user_id", "day_of_week", name="uq_schedule_user_day"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
