@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     admin_password: str = "admin123"
     admin_name: str = "Aldin_Hndr"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    supabase_url: str = ""
+    supabase_key: str = ""
+    supabase_bucket: str = "attendance-photos"
+    use_supabase_storage: bool = False
 
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),

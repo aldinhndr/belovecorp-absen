@@ -108,5 +108,8 @@ export const api = {
 export function photoUrl(path) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
+  if (path.startsWith("supabase://")) {
+    return `${API_BASE}/uploads/${path.replace("supabase://", "")}`;
+  }
   return `${API_BASE}/uploads/${path}`;
 }

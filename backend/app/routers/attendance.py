@@ -1,7 +1,5 @@
 import logging
-import uuid
 from datetime import date, datetime, timedelta
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session, joinedload
@@ -13,46 +11,20 @@ from app.models import Attendance, AttendanceType, RandomItem, Schedule, User, U
 from app.reports import HARI_ID, day_range, now_wib
 from app.schemas import AttendanceOut, RandomItemOut
 from app.security import get_current_user
+from app.storage import storage_service
 
 router = APIRouter(tags=["attendance"])
 logger = logging.getLogger(__name__)
 
-ALLOWED_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/jpg": ".jpg"}
 
-
-@router.get("/random-item/next", response_model=RandomItemOut)
-def next_random_item(
-    db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
-):
-    item = (
-        db.query(RandomItem)
-        .filter(RandomItem.aktif.is_(True))
-        .order_by(RandomItem.id)
-        .all()
-    )
-    if not item:
-        raise HTTPException(status_code=404, detail="Belum ada barang random aktif")
-    from random import choice
-
-    return choice(item)
-
-
-def _save_photo(file: UploadFile) -> str:
-    content_type = (file.content_type or "").lower()
-    ext = ALLOWED_TYPES.get(content_type)
-    if not ext:
-        raise HTTPException(status_code=400, detail="Foto harus JPG atau PNG")
-    data = file.file.read()
-    max_bytes = settings.max_photo_mb * 1024 * 1024
-    if len(data) > max_bytes:
-        raise HTTPException(status_code=400, detail=f"Ukuran foto maks {settings.max_photo_mb}MB")
-    if len(data) == 0:
-        raise HTTPException(status_code=400, detail="Foto kosong")
-    filename = f"{uuid.uuid4().hex}{ext}"
-    dest: Path = settings.upload_path / filename
-    dest.write_bytes(data)
-    return filename
+@router.get("/uploads/{path:path}")
+def serve_upload(path: str):
+    url = storage_service.get_public_url(path)
+    if url.startswith("http"):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=url)
+    from fastapi.responses import FileResponse
+    return FileResponse(url)
 
 
 @router.post("/attendance", response_model=AttendanceOut, status_code=status.HTTP_201_CREATED)
@@ -136,7 +108,7 @@ def submit_attendance(
                 current_user.store.radius_meter,
             )
 
-    foto_path = _save_photo(foto)
+    foto_path = storage_service.save_photo(foto)
     alamat = reverse_geocode(latitude, longitude)
 
     record = Attendance(
