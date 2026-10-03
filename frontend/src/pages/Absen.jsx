@@ -22,6 +22,38 @@ function tabKey(shift, tipe) {
   return `${shift}-${tipe}`;
 }
 
+function formatTime(t) {
+  if (!t) return "";
+  return t.slice(0, 5);
+}
+
+function getCurrentShift(schedules) {
+  if (!schedules || schedules.length === 0) return 0;
+  const now = new Date();
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+  
+  // Find the shift that matches current time (within 2 hours of start)
+  for (let i = 0; i < schedules.length; i++) {
+    const s = schedules[i];
+    const start = s.start_time;
+    const [sh, sm] = start.split(":").map(Number);
+    const startMinutes = sh * 60 + sm;
+    const diff = currentTime - startMinutes;
+    if (diff >= -120 && diff <= 120) { // within 2 hours
+      return i;
+    }
+  }
+  // Default to first shift that hasn't started yet
+  for (let i = 0; i < schedules.length; i++) {
+    const s = schedules[i];
+    const start = s.start_time;
+    const [sh, sm] = start.split(":").map(Number);
+    const startMinutes = sh * 60 + sm;
+    if (currentTime < startMinutes + 120) return i;
+  }
+  return 0;
+}
+
 // Class yang dipakai berulang
 const BTN_PRIMARY =
   "rounded-2xl bg-gradient-to-br from-[#Cf8085] to-[#663532] font-semibold text-white shadow-[0_10px_30px_-10px_rgba(102,53,50,0.55)] transition-all duration-200 hover:shadow-[0_14px_36px_-10px_rgba(102,53,50,0.65)] active:scale-[0.98] disabled:opacity-60";
@@ -78,6 +110,7 @@ export default function Absen() {
   const [done, setDone] = useState({});
   const [step, setStep] = useState(STEP.PERMISSION);
   const [facing, setFacing] = useState("environment");
+  const [schedules, setSchedules] = useState([]);
 
   useEffect(() => {
     api.nextItem().then(setItem).catch(() => {});
@@ -90,8 +123,25 @@ export default function Absen() {
       });
       setDone(map);
     }).catch(() => {});
+    api.mySchedules().then(setSchedules).catch(() => setSchedules([]));
     return () => { stopStream(); stopQr(); };
   }, []);
+
+  // Determine today's schedules
+  const todaySchedules = useMemo(() => {
+    const today = new Date();
+    const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const todayName = dayNames[today.getDay()];
+    return schedules.filter(s => s.day_of_week === todayName).sort((a, b) => a.start_time.localeCompare(b.start_time));
+  }, [schedules]);
+
+  // Auto-select shift based on current time
+  useEffect(() => {
+    if (todaySchedules.length > 0 && step === STEP.PERMISSION) {
+      const suggestedShift = getCurrentShift(todaySchedules);
+      setShift(suggestedShift);
+    }
+  }, [todaySchedules, step]);
 
   const stopStream = () => { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; };
   const stopQr = async () => { if (qrRef.current) { try { await qrRef.current.stop(); } catch {} qrRef.current = null; } };
@@ -224,32 +274,66 @@ export default function Absen() {
         )}
       </div>
 
-      {/* ===== Tabs ===== */}
+{/* ===== Tabs ===== */}
       <div className="mx-5 mb-4 flex gap-1.5 rounded-2xl bg-white p-1.5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] ring-1 ring-neutral-100 flex-wrap">
-        {SHIFTS.map((s) => (
-          <div key={`shift-${s}`} className="flex flex-1 min-w-[140px] gap-1">
-            {["masuk", "pulang"].map((t) => {
-              const key = tabKey(s, t);
-              const active = shift === s && tipe === t;
-              return (
-                <button key={key} type="button"
-                  onClick={() => { setShift(s); setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 ${
-                    active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
-                           : "text-neutral-500 hover:bg-[#EBC5C4]/40 hover:text-[#663532]"
-                  }`}>
-                  <span className="hidden sm:inline">{shiftLabel(s)} </span>
-                  {t === "masuk" ? "Masuk" : "Pulang"}
-                  {done[key] && (
-                    <span className={`flex h-4 w-4 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
-                      <Check c={`h-2.5 w-2.5 ${active ? "text-white" : ""}`} />
+        {todaySchedules.length > 0 ? (
+          todaySchedules.map((s, idx) => (
+            <div key={`shift-${idx}`} className="flex flex-1 min-w-[140px] gap-1">
+              {["masuk", "pulang"].map((t) => {
+                const key = tabKey(idx, t);
+                const active = shift === idx && tipe === t;
+                const isCurrentShift = getCurrentShift(todaySchedules) === idx;
+                return (
+                  <button key={key} type="button"
+                    onClick={() => { setShift(idx); setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 ${
+                      active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
+                             : isCurrentShift ? "bg-[#EBC5C4]/30 text-[#663532] ring-1 ring-[#EBC5C4]"
+                             : "text-neutral-500 hover:bg-[#EBC5C4]/40 hover:text-[#663532]"
+                    }`}>
+                    <span className="flex items-center gap-1">
+                      <span className="hidden sm:inline font-medium">{formatTime(s.start_time)} – {formatTime(s.end_time)}</span>
+                      {t === "masuk" ? "Masuk" : "Pulang"}
                     </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+                    {done[key] && (
+                      <span className={`flex h-4 w-4 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
+                        <Check c={`h-2.5 w-2.5 ${active ? "text-white" : ""}`} />
+                      </span>
+                    )}
+                    {isCurrentShift && !done[key] && !active && (
+                      <span className="flex h-3 w-3 items-center justify-center rounded-full bg-[#Cf8085] text-white text-[8px]">●</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))
+        ) : (
+          SHIFTS.map((s) => (
+            <div key={`shift-${s}`} className="flex flex-1 min-w-[140px] gap-1">
+              {["masuk", "pulang"].map((t) => {
+                const key = tabKey(s, t);
+                const active = shift === s && tipe === t;
+                return (
+                  <button key={key} type="button"
+                    onClick={() => { setShift(s); setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 ${
+                      active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
+                             : "text-neutral-500 hover:bg-[#EBC5C4]/40 hover:text-[#663532]"
+                    }`}>
+                    <span className="hidden sm:inline">{shiftLabel(s)} </span>
+                    {t === "masuk" ? "Masuk" : "Pulang"}
+                    {done[key] && (
+                      <span className={`flex h-4 w-4 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
+                        <Check c={`h-2.5 w-2.5 ${active ? "text-white" : ""}`} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))
+        )}
       </div>
 
       {/* ===== GPS status ===== */}
