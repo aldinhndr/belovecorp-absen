@@ -58,6 +58,8 @@ function AttendanceCard({ variant, time, data }) {
   const softBg = isIn ? "bg-[#EBC5C4]/40" : "bg-[#663532]/10";
   const textColor = isIn ? "text-[#663532]" : "text-[#472220]";
 
+  const shiftLabel = data?.shift_index !== undefined ? `Shift ${data.shift_index + 1}` : null;
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)]">
       {/* Accent bar */}
@@ -70,6 +72,11 @@ function AttendanceCard({ variant, time, data }) {
         <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
           {label}
         </span>
+        {shiftLabel && (
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#EBC5C4]/40 px-2 py-0.5 text-[10px] font-semibold text-[#663532] ring-1 ring-[#EBC5C4]">
+            {shiftLabel}
+          </span>
+        )}
       </div>
 
       <div className={`mt-2 text-xl font-bold tabular-nums ${time ? "text-neutral-900" : "text-neutral-300"}`}>
@@ -148,8 +155,23 @@ export default function Riwayat() {
   const selectedKey = dateKey(selected);
   const selectedAtt = attByDate[selectedKey] || [];
   const selectedAct = actByDate[selectedKey] || [];
-  const masuk = selectedAtt.find((a) => a.tipe === "masuk");
-  const pulang = selectedAtt.find((a) => a.tipe === "pulang");
+
+  // Group attendances by shift_index
+  const attByShift = useMemo(() => {
+    const map = {};
+    selectedAtt.forEach((a) => {
+      const shiftIdx = a.shift_index || 0;
+      (map[shiftIdx] ||= []).push(a);
+    });
+    return map;
+  }, [selectedAtt]);
+
+  const shiftIndices = useMemo(() => {
+    const indices = new Set(Object.keys(attByShift).map(Number));
+    // If no attendances but we have schedules, we'd need to fetch them
+    // For now, use available shifts or default to [0]
+    return indices.size > 0 ? Array.from(indices).sort((a, b) => a - b) : [0];
+  }, [attByShift]);
 
   const isToday =
     selected.getDate() === today.getDate() &&
@@ -198,11 +220,29 @@ export default function Riwayat() {
           </div>
         ) : (
           <>
-            {/* Absen grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <AttendanceCard variant="masuk" time={masuk ? fmtTime(masuk.waktu) : null} data={masuk} />
-              <AttendanceCard variant="pulang" time={pulang ? fmtTime(pulang.waktu) : null} data={pulang} />
-            </div>
+            {/* Absen per shift */}
+            {shiftIndices.map((shiftIdx) => (
+              <div key={shiftIdx} className="mb-4">
+                {shiftIndices.length > 1 && (
+                  <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-[#EBC5C4]/40 px-2.5 py-0.5 text-[10px] font-bold text-[#663532] ring-1 ring-[#EBC5C4]">
+                    Shift {shiftIdx + 1}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  {["masuk", "pulang"].map((tipe) => {
+                    const att = attByShift[shiftIdx]?.find((a) => a.tipe === tipe);
+                    return (
+                      <AttendanceCard
+                        key={tipe}
+                        variant={tipe}
+                        time={att ? fmtTime(att.waktu) : null}
+                        data={att}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             {/* Kegiatan */}
             <div className="mt-5">

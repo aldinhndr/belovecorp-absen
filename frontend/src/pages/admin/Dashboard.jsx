@@ -140,6 +140,7 @@ export default function AdminDashboard() {
                     <tr className="bg-stone-50">
                       <th className="px-4 py-2.5 font-semibold text-muted">Foto</th>
                       <th className="px-4 py-2.5 font-semibold text-muted">Karyawan</th>
+                      <th className="px-4 py-2.5 font-semibold text-muted">Shift</th>
                       <th className="px-4 py-2.5 font-semibold text-muted">Tipe</th>
                       <th className="px-4 py-2.5 font-semibold text-muted">Waktu</th>
                       <th className="px-4 py-2.5 font-semibold text-muted">Barang</th>
@@ -155,6 +156,15 @@ export default function AdminDashboard() {
                           </a>
                         </td>
                         <td className="px-4 py-3 font-medium">{r.user?.nama || r.user_id}</td>
+                        <td className="px-4 py-3 text-center">
+                          {r.shift_index !== undefined && r.shift_index !== null ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#EBC5C4]/40 px-2 py-0.5 text-[10px] font-semibold text-[#663532] ring-1 ring-[#EBC5C4]">
+                              Shift {r.shift_index + 1}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-400 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`badge text-[10px] ${r.tipe === "masuk" ? "badge-ok" : "badge-warn"}`}>
                             {r.tipe}
