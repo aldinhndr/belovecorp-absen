@@ -97,6 +97,19 @@ def ensure_schema() -> None:
         except Exception as e:
             logger.warning("Could not drop constraint: %s", e)
 
+        # Add shift_index column to attendances if not exists
+        att_cols = conn.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'attendances'"
+            )
+        ).fetchall()
+        att_names = {row[0] for row in att_cols}
+        if "shift_index" not in att_names:
+            conn.execute(
+                text("ALTER TABLE attendances ADD COLUMN shift_index INTEGER NOT NULL DEFAULT 0")
+            )
+
 
 def get_db() -> Generator[Session, None, None]:
     db: Session = SessionLocal()

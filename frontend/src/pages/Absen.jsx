@@ -462,7 +462,7 @@ export default function Absen() {
 
       {/* ===== STEP: PHOTO ===== */}
       {step === STEP.PHOTO && (
-        <div className="mx-5 flex flex-1 flex-col gap-4 pb-32">
+        <div className="mx-5 flex flex-1 flex-col gap-4 pb-[120px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
               <span className={ICON_BOX}>
@@ -479,12 +479,18 @@ export default function Absen() {
           <div className="relative overflow-hidden rounded-3xl bg-neutral-900 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.4)]" style={{ aspectRatio: "3/4" }}>
             <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
             <div className="pointer-events-none absolute inset-6 rounded-2xl border border-dashed border-white/30" />
+            
+            <div className="absolute bottom-4 inset-x-4 bg-black/60 backdrop-blur-md p-3 rounded-2xl border border-white/10 text-center">
+              <p className="text-white text-[11px] font-medium leading-relaxed">
+                <span className="text-[#Cf8085] font-bold">WAJIB:</span> Pastikan foto menampilkan <strong className="text-white">wajah karyawan</strong> bersama dengan <strong className="text-white">barang yang diminta</strong> dengan jelas.
+              </p>
+            </div>
           </div>
 
           <ErrBox>{error}</ErrBox>
           <canvas ref={canvasRef} hidden />
 
-          <div className="fixed inset-x-0 bottom-0 z-10 flex justify-center pb-[calc(28px+env(safe-area-inset-bottom,0px))]">
+          <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-[100] flex justify-center">
             <button type="button" onClick={capture} aria-label="Ambil foto"
               className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-[0_8px_30px_-6px_rgba(0,0,0,0.35)] ring-4 ring-white/60 transition-transform active:scale-90">
               <span className="h-14 w-14 rounded-full bg-gradient-to-br from-[#Cf8085] to-[#663532] shadow-inner" />
