@@ -282,46 +282,64 @@ export default function Absen() {
         )}
       </div>
 
-{/* ===== Tabs ===== */}
-      <div className="mx-5 mb-4 flex gap-1.5 rounded-2xl bg-white p-1.5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] ring-1 ring-neutral-100 flex-wrap">
-        {todaySchedules.length > 0 ? (
-          todaySchedules.map((s, idx) => (
-            <div key={`shift-${idx}`} className="flex flex-1 min-w-[140px] gap-1">
-              {["masuk", "pulang"].map((t) => {
-                const key = tabKey(idx, t);
-                const active = shift === idx && tipe === t;
-                const isCurrentShift = getCurrentShift(todaySchedules) === idx;
-                return (
-                  <button key={key} type="button"
-                    onClick={() => { setShift(idx); setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 ${
-                      active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
-                             : isCurrentShift ? "bg-[#EBC5C4]/30 text-[#663532] ring-1 ring-[#EBC5C4]"
-                             : "text-neutral-500 hover:bg-[#EBC5C4]/40 hover:text-[#663532]"
-                    }`}>
-                    <span className="flex items-center gap-1">
-                      <span className="hidden sm:inline font-medium">{formatTime(s.start_time)} – {formatTime(s.end_time)}</span>
-                      {t === "masuk" ? "Masuk" : "Pulang"}
-                    </span>
-                    {done[key] && (
-                      <span className={`flex h-4 w-4 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
-                        <Check c={`h-2.5 w-2.5 ${active ? "text-white" : ""}`} />
-                      </span>
-                    )}
-                    {isCurrentShift && !done[key] && !active && (
-                      <span className="flex h-3 w-3 items-center justify-center rounded-full bg-[#Cf8085] text-white text-[8px]">●</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))
-        ) : (
-          <div className="flex-1 text-center py-4 text-neutral-500 text-sm">
-            Tidak ada jadwal shift hari ini
+{/* ===== Shift Tabs ===== */}
+      {todaySchedules.length > 0 && (
+        <div className="mx-5 mb-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Shift Hari Ini</span>
+            <span className="text-[10px] text-neutral-400">{todaySchedules.length} shift</span>
           </div>
-        )}
-      </div>
+          <div className="overflow-x-auto no-scrollbar pb-2 -mx-1 px-1">
+            <div className="flex gap-2 min-w-max">
+              {todaySchedules.map((s, idx) => (
+                <div key={`shift-${idx}`} className="flex-shrink-0 w-[150px]">
+                  <div className={`rounded-2xl p-2.5 transition-all duration-200 ${getCurrentShift(todaySchedules) === idx ? "bg-[#EBC5C4]/30 ring-1 ring-[#EBC5C4]" : "bg-white ring-1 ring-neutral-100"} shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)]`}>
+                    <div className="mb-2 text-center">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Shift {idx + 1}</div>
+                      <div className="text-xs font-medium text-neutral-600">{formatTime(s.start_time)} – {formatTime(s.end_time)}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {["masuk", "pulang"].map((t) => {
+                        const key = tabKey(idx, t);
+                        const active = shift === idx && tipe === t;
+                        const isDone = done[key];
+                        return (
+                          <button key={key} type="button"
+                            onClick={() => { setShift(idx); setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
+                            className={`relative flex flex-col items-center gap-1 rounded-xl py-2 text-xs font-semibold transition-all duration-200 ${
+                              active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
+                                     : isDone ? "bg-[#EBC5C4]/40 text-[#663532]"
+                                     : "text-neutral-500 hover:bg-[#EBC5C4]/30 hover:text-[#663532]"
+                            }`}>
+                            <span className="font-medium">{t === "masuk" ? "Masuk" : "Pulang"}</span>
+                            {isDone && (
+                              <span className={`absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
+                                <Check c="h-2 w-2" />
+                              </span>
+                            )}
+                            {getCurrentShift(todaySchedules) === idx && !isDone && !active && (
+                              <span className="absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#Cf8085] text-white text-[8px]">●</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {todaySchedules.length === 0 && (
+        <div className="mx-5 mb-4 rounded-2xl bg-neutral-50 p-4 text-center border border-dashed border-neutral-200">
+          <svg className="mx-auto h-8 w-8 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="mt-2 text-sm text-neutral-500">Tidak ada jadwal shift hari ini</p>
+          <p className="mt-1 text-xs text-neutral-400">Hubungi admin untuk menambah jadwal</p>
+        </div>
+      )}
 
       {/* ===== GPS status ===== */}
       <div className="mx-5 mb-4 flex items-center gap-2 rounded-xl border border-neutral-100 bg-white px-3.5 py-2.5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)]">
