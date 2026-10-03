@@ -28,8 +28,8 @@ def seed_if_empty(db: Session) -> None:
     if not store:
         store = Store(
             nama="Belove Store Pusat",
-            latitude=-6.200000,
-            longitude=106.816666,
+            latitude=-5.3790617,
+            longitude=105.2457338,
             radius_meter=150,
         )
         db.add(store)

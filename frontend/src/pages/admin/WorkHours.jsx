@@ -43,11 +43,6 @@ function UserRow({ user, onClick }) {
       <td className="px-5 py-3 font-medium">{user.nama}</td>
       <td className="px-5 py-3">{user.total_hari_kerja} hari</td>
       <td className="px-5 py-3 font-bold tabular-nums text-[#663532]">{fmtDuration(user.total_jam_kerja_menit)}</td>
-      <td className="px-5 py-3">
-        <span className={`badge ${user.total_keterlambatan_menit > 0 ? "bg-amber-100 text-amber-700" : "bg-stone-100 text-stone-500"}`}>
-          {fmtDuration(user.total_keterlambatan_menit)}
-        </span>
-      </td>
       <td className="px-5 py-3 text-right">
         <button type="button" className="text-xs font-semibold text-[#Cf8085] hover:text-[#663532]">Detail →</button>
       </td>
@@ -71,9 +66,8 @@ function DetailModal({ selectedUser, onClose }) {
           </button>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 mb-6">
             <SummaryCard label="Total Jam Kerja" value={fmtDuration(selectedUser.total_jam_kerja_menit)} color="bg-[#EBC5C4] text-[#663532]" />
-            <SummaryCard label="Total Keterlambatan" value={fmtDuration(selectedUser.total_keterlambatan_menit)} color="bg-amber-100 text-amber-700" />
             <SummaryCard label="Hari Kerja" value={`${selectedUser.total_hari_kerja} hari`} color="bg-[#Cf8085] text-white" />
           </div>
 
@@ -87,7 +81,6 @@ function DetailModal({ selectedUser, onClose }) {
                   <th className="px-4 py-3 font-semibold text-neutral-600">Pulang</th>
                   <th className="px-4 py-3 font-semibold text-neutral-600">Jadwal</th>
                   <th className="px-4 py-3 font-semibold text-neutral-600">Durasi</th>
-                  <th className="px-4 py-3 font-semibold text-neutral-600">Late</th>
                   <th className="px-4 py-3 font-semibold text-neutral-600">Aktivitas</th>
                 </tr>
               </thead>
@@ -99,10 +92,6 @@ function DetailModal({ selectedUser, onClose }) {
                     <td className="px-4 py-3">{fmtTime(d.pulang)}</td>
                     <td className="px-4 py-3 text-xs text-neutral-500">{d.jadwal_masuk} – {d.jadwal_pulang}</td>
                     <td className="px-4 py-3 font-semibold text-[#663532]">{fmtDuration(d.durasi_menit)}</td>
-                    <td className="px-4 py-3 text-xs">
-                      {d.keterlambatan_menit > 0 && <span className="badge bg-amber-100 text-amber-700">Late {d.keterlambatan_menit}m</span>}
-                      {d.keterlambatan_menit === 0 && <span className="text-neutral-400">—</span>}
-                    </td>
                     <td className="px-4 py-3">
                       {d.aktivitas.length === 0 ? (
                         <span className="text-neutral-400 text-xs">—</span>
@@ -157,7 +146,6 @@ export default function AdminWorkHours() {
   const summary = useMemo(() => ({
     totalUsers: recap.length,
     totalWorkHours: recap.reduce((s, u) => s + (u.total_jam_kerja_menit || 0), 0),
-    totalLate: recap.reduce((s, u) => s + (u.total_keterlambatan_menit || 0), 0),
   }), [recap]);
 
   const fmtDuration = (min) => {
@@ -212,10 +200,9 @@ export default function AdminWorkHours() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
         <SummaryCard label="Total Karyawan" value={summary.totalUsers} color="bg-[#Cf8085]" />
         <SummaryCard label="Total Jam Kerja" value={fmtDuration(summary.totalWorkHours)} color="bg-[#663532]" />
-        <SummaryCard label="Total Keterlambatan" value={fmtDuration(summary.totalLate)} color="bg-amber-500" />
       </div>
 
       {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600 border border-red-100">{error}</div>}
@@ -232,14 +219,13 @@ export default function AdminWorkHours() {
                 <th className="px-5 py-3 font-semibold text-neutral-600">Nama</th>
                 <th className="px-5 py-3 font-semibold text-neutral-600">Hari Kerja</th>
                 <th className="px-5 py-3 font-semibold text-neutral-600">Total Jam Kerja</th>
-                <th className="px-5 py-3 font-semibold text-neutral-600">Keterlambatan</th>
                 <th className="px-5 py-3 font-semibold text-neutral-600 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {recap.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-5 text-center text-xs text-neutral-400">Tidak ada data absensi di periode ini.</td>
+                  <td colSpan={4} className="p-5 text-center text-xs text-neutral-400">Tidak ada data absensi di periode ini.</td>
                 </tr>
               ) : (
                 recap.map((u) => (

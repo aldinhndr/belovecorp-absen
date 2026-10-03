@@ -359,8 +359,8 @@ def manual_attendance(
     item = db.query(RandomItem).filter(RandomItem.aktif.is_(True)).first()
     item_id = item.id if item else None
 
-    lat = user.store.latitude if user.store else -5.3790375
-    lng = user.store.longitude if user.store else 105.2457283
+    lat = user.store.latitude if user.store else -5.3790617
+    lng = user.store.longitude if user.store else 105.2457338
 
     record = Attendance(
         user_id=user.id,
