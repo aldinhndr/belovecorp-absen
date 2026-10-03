@@ -280,13 +280,17 @@ def delete_user(
     if current_user.id == user_id:
         raise HTTPException(status_code=400, detail="Tidak dapat menghapus akun sendiri")
     
-    # Hapus semua relasi dulu agar bisa dihapus (cascade delete manual)
-    db.query(Attendance).filter(Attendance.user_id == user_id).delete()
-    db.query(Activity).filter(Activity.user_id == user_id).delete()
-    db.query(Schedule).filter(Schedule.user_id == user_id).delete()
-    
-    db.delete(user)
-    db.commit()
+    try:
+        # Hapus semua relasi dulu agar bisa dihapus (cascade delete manual)
+        db.query(Attendance).filter(Attendance.user_id == user_id).delete()
+        db.query(Activity).filter(Activity.user_id == user_id).delete()
+        db.query(Schedule).filter(Schedule.user_id == user_id).delete()
+        
+        db.delete(user)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Gagal hapus user: {str(e)}")
     return None
 
 # --- SCHEDULES ---
