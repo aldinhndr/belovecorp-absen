@@ -224,11 +224,19 @@ export default function Absen() {
   };
 
   const restart = () => { setError(""); setMsg(""); setPhoto(null); setStep(STEP.SCAN); setTimeout(startQr, 100); };
+  const getNextAction = () => {
+    for (const s of scheduledShifts) {
+      if (!done[tabKey(s, "masuk")]) return `Absen Masuk ${todaySchedules[s] ? `${formatTime(todaySchedules[s].start_time)}–${formatTime(todaySchedules[s].end_time)}` : shiftLabel(s)}`;
+      if (!done[tabKey(s, "pulang")]) return `Absen Pulang ${todaySchedules[s] ? `${formatTime(todaySchedules[s].start_time)}–${formatTime(todaySchedules[s].end_time)}` : shiftLabel(s)}`;
+    }
+    return "Absen selanjutnya";
+  };
 
   useEffect(() => { if (step === STEP.SCAN && item) startQr(); }, [step, item]);
   useEffect(() => { if (step === STEP.PHOTO) startPhoto(); }, [step]);
 
-  const allDone = SHIFTS.every(s => done[tabKey(s, "masuk")] && done[tabKey(s, "pulang")]);
+  const scheduledShifts = todaySchedules.length > 0 ? todaySchedules.map((_, i) => i) : SHIFTS;
+  const allDone = scheduledShifts.every(s => done[tabKey(s, "masuk")] && done[tabKey(s, "pulang")]);
 
   const gpsDot = geoStatus === "ok"
     ? "bg-[#Cf8085] shadow-[0_0_0_3px_rgba(207,128,133,0.25)]"
@@ -309,30 +317,9 @@ export default function Absen() {
             </div>
           ))
         ) : (
-          SHIFTS.map((s) => (
-            <div key={`shift-${s}`} className="flex flex-1 min-w-[140px] gap-1">
-              {["masuk", "pulang"].map((t) => {
-                const key = tabKey(s, t);
-                const active = shift === s && tipe === t;
-                return (
-                  <button key={key} type="button"
-                    onClick={() => { setShift(s); setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 ${
-                      active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
-                             : "text-neutral-500 hover:bg-[#EBC5C4]/40 hover:text-[#663532]"
-                    }`}>
-                    <span className="hidden sm:inline">{shiftLabel(s)} </span>
-                    {t === "masuk" ? "Masuk" : "Pulang"}
-                    {done[key] && (
-                      <span className={`flex h-4 w-4 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
-                        <Check c={`h-2.5 w-2.5 ${active ? "text-white" : ""}`} />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))
+          <div className="flex-1 text-center py-4 text-neutral-500 text-sm">
+            Tidak ada jadwal shift hari ini
+          </div>
         )}
       </div>
 
@@ -529,14 +516,7 @@ export default function Absen() {
 
           {!allDone ? (
             <button type="button" onClick={restart} className={`px-8 py-3.5 text-sm ${BTN_PRIMARY}`}>
-              {(() => {
-                // Find next incomplete
-                for (const s of SHIFTS) {
-                  if (!done[tabKey(s, "masuk")]) return `Absen Masuk ${shiftLabel(s)}`;
-                  if (!done[tabKey(s, "pulang")]) return `Absen Pulang ${shiftLabel(s)}`;
-                }
-                return "Absen selanjutnya";
-              })()}
+              {getNextAction()}
             </button>
           ) : (
             <div className="inline-flex items-center gap-2 rounded-full bg-[#EBC5C4]/40 px-4 py-2 text-xs font-semibold text-[#663532] ring-1 ring-[#EBC5C4]">
