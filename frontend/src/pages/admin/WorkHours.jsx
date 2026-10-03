@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 function today() {
   const d = new Date();
@@ -28,6 +29,33 @@ function fmtDuration(min) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+function getWeekRange(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  const day = d.getDay();
+  const start = new Date(d);
+  start.setDate(d.getDate() - day);
+  const end = new Date(d);
+  end.setDate(d.getDate() + (6 - day));
+  const pad = (n) => String(n).padStart(2, "0");
+  return {
+    start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+    end: `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`,
+    label: `${pad(start.getDate())} ${BULAN[start.getMonth()]} - ${pad(end.getDate())} ${BULAN[end.getMonth()]} ${start.getFullYear()}`
+  };
+}
+
+function getMonthRange(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const pad = (n) => String(n).padStart(2, "0");
+  return {
+    start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+    end: `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`,
+    label: `${BULAN[d.getMonth()]} ${d.getFullYear()}`
+  };
+}
+
 function SummaryCard({ label, value, color }) {
   return (
     <div className={`rounded-2xl p-4 ${color} text-white shadow-lg`}>
@@ -37,81 +65,175 @@ function SummaryCard({ label, value, color }) {
   );
 }
 
-function UserRow({ user, onClick }) {
+function UserRow({ user, onClick, isExpanded, viewMode }) {
   return (
-    <tr key={user.user_id} className="hover:bg-stone-50/50 cursor-pointer" onClick={onClick}>
-      <td className="px-5 py-3 font-medium">{user.nama}</td>
-      <td className="px-5 py-3">{user.total_hari_kerja} hari</td>
-      <td className="px-5 py-3 font-bold tabular-nums text-[#663532]">{fmtDuration(user.total_jam_kerja_menit)}</td>
-      <td className="px-5 py-3 text-right">
-        <button type="button" className="text-xs font-semibold text-[#Cf8085] hover:text-[#663532]">Detail →</button>
-      </td>
-    </tr>
+    <>
+      <tr key={user.user_id} className="hover:bg-stone-50/50 cursor-pointer" onClick={onClick}>
+        <td className="px-5 py-3 font-medium">{user.nama}</td>
+        <td className="px-5 py-3">{user.total_hari_kerja} hari</td>
+        <td className="px-5 py-3 font-bold tabular-nums text-[#663532]">{fmtDuration(user.total_jam_kerja_menit)}</td>
+        <td className="px-5 py-3 text-right">
+          <button type="button" className="text-xs font-semibold text-[#Cf8085] hover:text-[#663532] flex items-center justify-end gap-1">
+            {isExpanded ? "Tutup" : "Detail"} <svg className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6" /></svg>
+          </button>
+        </td>
+      </tr>
+      {isExpanded && (
+        <tr key={`expanded-${user.user_id}`}>
+          <td colSpan={4} className="px-0 py-0 border-0 bg-stone-50/30">
+            <div className="p-4 border-t border-line">
+              {viewMode === "harian" && <DailyDetail user={user} />}
+              {viewMode === "mingguan" && <WeeklyDetail user={user} />}
+              {viewMode === "bulanan" && <MonthlyDetail user={user} />}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
-function DetailModal({ selectedUser, onClose }) {
-  if (!selectedUser) return null;
+function DailyDetail({ user }) {
+  return (
+    <div>
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 mb-4">
+        <SummaryCard label="Total Jam Kerja" value={fmtDuration(user.total_jam_kerja_menit)} color="bg-[#EBC5C4] text-[#663532]" />
+        <SummaryCard label="Hari Kerja" value={`${user.total_hari_kerja} hari`} color="bg-[#Cf8085] text-white" />
+      </div>
+      <h4 className="text-lg font-bold text-[#663532] mb-3">Detail Harian</h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-line bg-stone-50">
+              <th className="px-4 py-3 font-semibold text-neutral-600">Tanggal</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Masuk</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Pulang</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Jadwal</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Durasi</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Aktivitas</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {user.detail_harian.map((d, i) => (
+              <tr key={i} className="hover:bg-stone-50/50">
+                <td className="px-4 py-3 font-medium">{d.hari}, {new Date(d.tanggal).toLocaleDateString("id-ID", {day:"2-digit",month:"short"})}</td>
+                <td className="px-4 py-3">{fmtTime(d.masuk)}</td>
+                <td className="px-4 py-3">{fmtTime(d.pulang)}</td>
+                <td className="px-4 py-3 text-xs text-neutral-500">{d.jadwal_masuk} – {d.jadwal_pulang}</td>
+                <td className="px-4 py-3 font-semibold text-[#663532]">{fmtDuration(d.durasi_menit)}</td>
+                <td className="px-4 py-3">
+                  {d.aktivitas.length === 0 ? (
+                    <span className="text-neutral-400 text-xs">—</span>
+                  ) : (
+                    <ul className="space-y-1">
+                      {d.aktivitas.map((a, idx) => (
+                        <li key={idx} className="flex items-center gap-1 text-xs text-neutral-700">
+                          <span className="text-[#Cf8085]">{a.waktu}</span>
+                          <span>{a.deskripsi}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function WeeklyDetail({ user }) {
+  const weeklyData = useMemo(() => {
+    const weeks = {};
+    user.detail_harian.forEach(d => {
+      const date = new Date(`${d.tanggal}T00:00:00`);
+      const weekKey = `${date.getFullYear()}-W${String(Math.ceil((date.getDate() + date.getDay()) / 7)).padStart(2, "0")}`;
+      if (!weeks[weekKey]) {
+        const weekRange = getWeekRange(d.tanggal);
+        weeks[weekKey] = { ...weekRange, hari_kerja: 0, total_menit: 0, days: [] };
+      }
+      if (d.masuk !== "-") {
+        weeks[weekKey].hari_kerja++;
+        weeks[weekKey].total_menit += d.durasi_menit;
+      }
+      weeks[weekKey].days.push(d);
+    });
+    return Object.values(weeks).sort((a, b) => a.start.localeCompare(b.start));
+  }, [user.detail_harian]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-gradient-to-r from-[#Cf8085] to-[#663532] text-white px-6 py-4 rounded-t-3xl flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold">{selectedUser.nama}</h3>
-            <p className="text-xs text-[#EBC5C4]">{selectedUser.email}</p>
-          </div>
-          <button onClick={onClose} className="p-1 rounded-full bg-white/20 hover:bg-white/30 text-white">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 mb-6">
-            <SummaryCard label="Total Jam Kerja" value={fmtDuration(selectedUser.total_jam_kerja_menit)} color="bg-[#EBC5C4] text-[#663532]" />
-            <SummaryCard label="Hari Kerja" value={`${selectedUser.total_hari_kerja} hari`} color="bg-[#Cf8085] text-white" />
-          </div>
+    <div>
+      <h4 className="text-lg font-bold text-[#663532] mb-3">Rekap Mingguan</h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-line bg-stone-50">
+              <th className="px-4 py-3 font-semibold text-neutral-600">Minggu</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Hari Kerja</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Total Jam</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Rata-rata/Hari</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {weeklyData.map((w, i) => (
+              <tr key={i} className="hover:bg-stone-50/50">
+                <td className="px-4 py-3 font-medium">{w.label}</td>
+                <td className="px-4 py-3">{w.hari_kerja} hari</td>
+                <td className="px-4 py-3 font-bold text-[#663532]">{fmtDuration(w.total_menit)}</td>
+                <td className="px-4 py-3 text-neutral-600">{w.hari_kerja > 0 ? fmtDuration(Math.round(w.total_menit / w.hari_kerja)) : "00:00"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
-          <h4 className="text-lg font-bold text-[#663532] mb-3">Detail Harian</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-line bg-stone-50">
-                  <th className="px-4 py-3 font-semibold text-neutral-600">Tanggal</th>
-                  <th className="px-4 py-3 font-semibold text-neutral-600">Masuk</th>
-                  <th className="px-4 py-3 font-semibold text-neutral-600">Pulang</th>
-                  <th className="px-4 py-3 font-semibold text-neutral-600">Jadwal</th>
-                  <th className="px-4 py-3 font-semibold text-neutral-600">Durasi</th>
-                  <th className="px-4 py-3 font-semibold text-neutral-600">Aktivitas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {selectedUser.detail_harian.map((d, i) => (
-                  <tr key={i} className="hover:bg-stone-50/50">
-                    <td className="px-4 py-3 font-medium">{d.hari}, {new Date(d.tanggal).toLocaleDateString("id-ID", {day:"2-digit",month:"short"})}</td>
-                    <td className="px-4 py-3">{fmtTime(d.masuk)}</td>
-                    <td className="px-4 py-3">{fmtTime(d.pulang)}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-500">{d.jadwal_masuk} – {d.jadwal_pulang}</td>
-                    <td className="px-4 py-3 font-semibold text-[#663532]">{fmtDuration(d.durasi_menit)}</td>
-                    <td className="px-4 py-3">
-                      {d.aktivitas.length === 0 ? (
-                        <span className="text-neutral-400 text-xs">—</span>
-                      ) : (
-                        <ul className="space-y-1">
-                          {d.aktivitas.map((a, idx) => (
-                            <li key={idx} className="flex items-center gap-1 text-xs text-neutral-700">
-                              <span className="text-[#Cf8085]">{a.waktu}</span>
-                              <span>{a.deskripsi}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+function MonthlyDetail({ user }) {
+  const monthlyData = useMemo(() => {
+    const months = {};
+    user.detail_harian.forEach(d => {
+      const date = new Date(`${d.tanggal}T00:00:00`);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      if (!months[monthKey]) {
+        months[monthKey] = { label: `${BULAN[date.getMonth()]} ${date.getFullYear()}`, hari_kerja: 0, total_menit: 0, days: [] };
+      }
+      if (d.masuk !== "-") {
+        months[monthKey].hari_kerja++;
+        months[monthKey].total_menit += d.durasi_menit;
+      }
+      months[monthKey].days.push(d);
+    });
+    return Object.values(months).sort((a, b) => a.label.localeCompare(b.label));
+  }, [user.detail_harian]);
+
+  return (
+    <div>
+      <h4 className="text-lg font-bold text-[#663532] mb-3">Rekap Bulanan</h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-line bg-stone-50">
+              <th className="px-4 py-3 font-semibold text-neutral-600">Bulan</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Hari Kerja</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Total Jam</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Rata-rata/Hari</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {monthlyData.map((m, i) => (
+              <tr key={i} className="hover:bg-stone-50/50">
+                <td className="px-4 py-3 font-medium">{m.label}</td>
+                <td className="px-4 py-3">{m.hari_kerja} hari</td>
+                <td className="px-4 py-3 font-bold text-[#663532]">{fmtDuration(m.total_menit)}</td>
+                <td className="px-4 py-3 text-neutral-600">{m.hari_kerja > 0 ? fmtDuration(Math.round(m.total_menit / m.hari_kerja)) : "00:00"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -123,8 +245,8 @@ export default function AdminWorkHours() {
   const [recap, setRecap] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showDetail, setShowDetail] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [expandedUserId, setExpandedUserId] = useState(null);
+  const [viewMode, setViewMode] = useState("harian");
 
   const load = async () => {
     setLoading(true);
@@ -148,18 +270,8 @@ export default function AdminWorkHours() {
     totalWorkHours: recap.reduce((s, u) => s + (u.total_jam_kerja_menit || 0), 0),
   }), [recap]);
 
-  const fmtDuration = (min) => {
-    if (!min || min === 0) return "00:00";
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  };
-
-  const fmtTime = (t) => (!t || t === "-") ? "—" : t.slice(0, 5);
-
-  const handleOpenDetail = (user) => {
-    setSelectedUser(user);
-    setShowDetail(true);
+  const handleToggleExpand = (user) => {
+    setExpandedUserId(expandedUserId === user.user_id ? null : user.user_id);
   };
 
   if (loading) {
@@ -210,7 +322,21 @@ export default function AdminWorkHours() {
       <div className="card overflow-hidden p-0">
         <div className="px-5 py-4 bg-stone-50 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h3 className="font-bold text-[#663532]">Rekap Per Karyawan</h3>
-          <span className="text-xs text-neutral-500">{recap.length} karyawan</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500">{recap.length} karyawan</span>
+            <div className="flex rounded-xl bg-neutral-100 p-1">
+              {["harian", "mingguan", "bulanan"].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${viewMode === mode ? "bg-white text-[#663532] shadow-sm" : "text-neutral-500 hover:text-[#663532]"}`}
+                  onClick={() => { setViewMode(mode); setExpandedUserId(null); }}
+                >
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -229,15 +355,19 @@ export default function AdminWorkHours() {
                 </tr>
               ) : (
                 recap.map((u) => (
-                  <UserRow key={u.user_id} user={u} onClick={() => handleOpenDetail(u)} />
+                  <UserRow
+                    key={u.user_id}
+                    user={u}
+                    onClick={() => handleToggleExpand(u)}
+                    isExpanded={expandedUserId === u.user_id}
+                    viewMode={viewMode}
+                  />
                 ))
               )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {showDetail && <DetailModal selectedUser={selectedUser} onClose={() => setShowDetail(false)} />}
     </div>
   );
 }
