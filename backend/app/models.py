@@ -94,6 +94,7 @@ class Attendance(Base):
     random_item_id: Mapped[int | None] = mapped_column(ForeignKey("random_items.id"))
     jarak_meter: Mapped[float | None] = mapped_column(Float, nullable=True)
     di_luar_radius: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    shift_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="attendances")
     random_item: Mapped["RandomItem | None"] = relationship()

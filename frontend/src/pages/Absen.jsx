@@ -7,7 +7,20 @@ const todayKey = () => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+const SHIFTS = [0, 1, 2, 3];
 const STEP = { PERMISSION: "permission", SCAN: "scan", PHOTO: "photo", PREVIEW: "preview", DONE: "done" };
+
+function shiftLabel(shift) {
+  return `Shift ${shift + 1}`;
+}
+
+function tipeLabel(tipe) {
+  return tipe === "masuk" ? "Masuk" : "Pulang";
+}
+
+function tabKey(shift, tipe) {
+  return `${shift}-${tipe}`;
+}
 
 // Class yang dipakai berulang
 const BTN_PRIMARY =
@@ -53,6 +66,7 @@ export default function Absen() {
   const qrRef = useRef(null);
 
   const [item, setItem] = useState(null);
+  const [shift, setShift] = useState(0);
   const [tipe, setTipe] = useState("masuk");
   const [coords, setCoords] = useState(null);
   const [geoStatus, setGeoStatus] = useState("idle");
@@ -69,7 +83,11 @@ export default function Absen() {
     api.nextItem().then(setItem).catch(() => {});
     api.myAttendance().then((rows) => {
       const key = todayKey(), map = {};
-      rows.forEach((r) => { if (String(r.waktu).slice(0, 10) === key) map[r.tipe] = true; });
+      rows.forEach((r) => {
+        if (String(r.waktu).slice(0, 10) === key) {
+          map[tabKey(r.shift_index || 0, r.tipe)] = true;
+        }
+      });
       setDone(map);
     }).catch(() => {});
     return () => { stopStream(); stopQr(); };
@@ -141,15 +159,15 @@ export default function Absen() {
     setLoading(true);
     try {
       const fd = new FormData();
-      Object.entries({ tipe, latitude: coords.lat, longitude: coords.lng, random_item_id: item.id, qr_token: item.qr_token })
+      Object.entries({ tipe, latitude: coords.lat, longitude: coords.lng, random_item_id: item.id, qr_token: item.qr_token, shift_index: shift })
         .forEach(([k, v]) => fd.append(k, v));
       fd.append("foto", photo, "absen.jpg");
       const res = await api.submitAttendance(fd);
-      setDone((d) => ({ ...d, [tipe]: true }));
+      setDone((d) => ({ ...d, [tabKey(shift, tipe)]: true }));
       setPhoto(null); setStep(STEP.DONE);
       setMsg(res.di_luar_radius
-        ? `Absen ${tipe} tersimpan, namun Anda di luar radius toko (${Math.round(res.jarak_meter)} m).`
-        : `Absen ${tipe} berhasil tersimpan.`);
+        ? `Absen ${tipe} ${shiftLabel(shift)} tersimpan, namun Anda di luar radius toko (${Math.round(res.jarak_meter)} m).`
+        : `Absen ${tipe} ${shiftLabel(shift)} berhasil tersimpan.`);
       setItem(await api.nextItem());
     } catch (err) { setError(err.message); setStep(STEP.PREVIEW); }
     finally { setLoading(false); }
@@ -160,7 +178,7 @@ export default function Absen() {
   useEffect(() => { if (step === STEP.SCAN && item) startQr(); }, [step, item]);
   useEffect(() => { if (step === STEP.PHOTO) startPhoto(); }, [step]);
 
-  const allDone = done.masuk && done.pulang;
+  const allDone = SHIFTS.every(s => done[tabKey(s, "masuk")] && done[tabKey(s, "pulang")]);
 
   const gpsDot = geoStatus === "ok"
     ? "bg-[#Cf8085] shadow-[0_0_0_3px_rgba(207,128,133,0.25)]"
@@ -207,25 +225,31 @@ export default function Absen() {
       </div>
 
       {/* ===== Tabs ===== */}
-      <div className="mx-5 mb-4 flex gap-1.5 rounded-2xl bg-white p-1.5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] ring-1 ring-neutral-100">
-        {["masuk", "pulang"].map((t) => {
-          const active = tipe === t;
-          return (
-            <button key={t} type="button"
-              onClick={() => { setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${
-                active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
-                       : "text-neutral-500 hover:bg-[#EBC5C4]/40 hover:text-[#663532]"
-              }`}>
-              {t === "masuk" ? "Absen Masuk" : "Absen Pulang"}
-              {done[t] && (
-                <span className={`flex h-4 w-4 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
-                  <Check c={`h-2.5 w-2.5 ${active ? "text-white" : ""}`} />
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="mx-5 mb-4 flex gap-1.5 rounded-2xl bg-white p-1.5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] ring-1 ring-neutral-100 flex-wrap">
+        {SHIFTS.map((s) => (
+          <div key={`shift-${s}`} className="flex flex-1 min-w-[140px] gap-1">
+            {["masuk", "pulang"].map((t) => {
+              const key = tabKey(s, t);
+              const active = shift === s && tipe === t;
+              return (
+                <button key={key} type="button"
+                  onClick={() => { setShift(s); setTipe(t); if (step === STEP.DONE) setStep(STEP.SCAN); }}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 ${
+                    active ? "bg-gradient-to-br from-[#Cf8085] to-[#663532] text-white shadow-sm shadow-[#663532]/30"
+                           : "text-neutral-500 hover:bg-[#EBC5C4]/40 hover:text-[#663532]"
+                  }`}>
+                  <span className="hidden sm:inline">{shiftLabel(s)} </span>
+                  {t === "masuk" ? "Masuk" : "Pulang"}
+                  {done[key] && (
+                    <span className={`flex h-4 w-4 items-center justify-center rounded-full ${active ? "bg-white/25" : "bg-[#EBC5C4] text-[#663532]"}`}>
+                      <Check c={`h-2.5 w-2.5 ${active ? "text-white" : ""}`} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {/* ===== GPS status ===== */}
@@ -421,12 +445,19 @@ export default function Absen() {
 
           {!allDone ? (
             <button type="button" onClick={restart} className={`px-8 py-3.5 text-sm ${BTN_PRIMARY}`}>
-              Absen {tipe === "masuk" ? "Pulang" : "Masuk"}
+              {(() => {
+                // Find next incomplete
+                for (const s of SHIFTS) {
+                  if (!done[tabKey(s, "masuk")]) return `Absen Masuk ${shiftLabel(s)}`;
+                  if (!done[tabKey(s, "pulang")]) return `Absen Pulang ${shiftLabel(s)}`;
+                }
+                return "Absen selanjutnya";
+              })()}
             </button>
           ) : (
             <div className="inline-flex items-center gap-2 rounded-full bg-[#EBC5C4]/40 px-4 py-2 text-xs font-semibold text-[#663532] ring-1 ring-[#EBC5C4]">
               <Check c="h-3.5 w-3.5" />
-              Absen masuk & pulang sudah selesai hari ini
+              Semua shift absen selesai hari ini
             </div>
           )}
         </div>

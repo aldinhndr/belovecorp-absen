@@ -106,6 +106,7 @@ function DailyDetail({ user }) {
           <thead>
             <tr className="border-b border-line bg-stone-50">
               <th className="px-4 py-3 font-semibold text-neutral-600">Tanggal</th>
+              <th className="px-4 py-3 font-semibold text-neutral-600">Shift</th>
               <th className="px-4 py-3 font-semibold text-neutral-600">Masuk</th>
               <th className="px-4 py-3 font-semibold text-neutral-600">Pulang</th>
               <th className="px-4 py-3 font-semibold text-neutral-600">Jadwal</th>
@@ -117,6 +118,11 @@ function DailyDetail({ user }) {
             {user.detail_harian.map((d, i) => (
               <tr key={i} className="hover:bg-stone-50/50">
                 <td className="px-4 py-3 font-medium">{d.hari}, {new Date(d.tanggal).toLocaleDateString("id-ID", {day:"2-digit",month:"short"})}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#EBC5C4]/40 px-2 py-0.5 text-[10px] font-semibold text-[#663532] ring-1 ring-[#EBC5C4]">
+                    Shift {d.shift || 1}
+                  </span>
+                </td>
                 <td className="px-4 py-3">{fmtTime(d.masuk)}</td>
                 <td className="px-4 py-3">{fmtTime(d.pulang)}</td>
                 <td className="px-4 py-3 text-xs text-neutral-500">{d.jadwal_masuk} – {d.jadwal_pulang}</td>

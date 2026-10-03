@@ -119,6 +119,7 @@ class AttendanceOut(BaseModel):
     random_item_id: int | None
     jarak_meter: float | None
     di_luar_radius: bool
+    shift_index: int
     random_item: RandomItemOut | None = None
     user: TokenUser | None = None
 

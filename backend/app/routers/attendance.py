@@ -34,10 +34,13 @@ def submit_attendance(
     longitude: float = Form(...),
     random_item_id: int = Form(...),
     qr_token: str | None = Form(default=None),
+    shift_index: int = Form(default=0),
     foto: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if shift_index < 0 or shift_index > 3:
+        raise HTTPException(status_code=400, detail="shift_index harus 0-3")
     item = db.query(RandomItem).filter(RandomItem.id == random_item_id, RandomItem.aktif.is_(True)).first()
     if not item:
         raise HTTPException(status_code=400, detail="Barang random tidak valid")
@@ -85,13 +88,15 @@ def submit_attendance(
         .filter(
             Attendance.user_id == current_user.id,
             Attendance.tipe == tipe,
+            Attendance.shift_index == shift_index,
             Attendance.waktu >= start,
             Attendance.waktu <= end,
         )
         .first()
     )
     if existing:
-        raise HTTPException(status_code=400, detail=f"Sudah absen {tipe.value} hari ini")
+        shift_label = f" (shift {shift_index + 1})" if shift_index > 0 else ""
+        raise HTTPException(status_code=400, detail=f"Sudah absen {tipe.value}{shift_label} hari ini")
 
     jarak = None
     di_luar = False
@@ -122,6 +127,7 @@ def submit_attendance(
         random_item_id=item.id,
         jarak_meter=jarak,
         di_luar_radius=di_luar,
+        shift_index=shift_index,
     )
     db.add(record)
     db.commit()

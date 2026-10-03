@@ -438,22 +438,23 @@ def work_hours_recap(
         user_att = att_by_user.get(user.id, [])
         user_act = act_by_user.get(user.id, [])
 
-        # Pair masuk/pulang per hari
-        by_day = {}
+        # Pair masuk/pulang per hari per shift
+        by_day_shift = {}
         for att in user_att:
             day_key = att.waktu.date()
-            by_day.setdefault(day_key, {"masuk": None, "pulang": None})
+            shift_key = att.shift_index
+            by_day_shift.setdefault((day_key, shift_key), {"masuk": None, "pulang": None})
             if att.tipe == AttendanceType.masuk:
-                by_day[day_key]["masuk"] = att
+                by_day_shift[(day_key, shift_key)]["masuk"] = att
             else:
-                by_day[day_key]["pulang"] = att
+                by_day_shift[(day_key, shift_key)]["pulang"] = att
 
         daily_details = []
         total_minutes = 0
         total_overtime_minutes = 0
         total_late_minutes = 0
 
-        for day_key, pair in sorted(by_day.items()):
+        for (day_key, shift_key), pair in sorted(by_day_shift.items()):
             day_name = HARI_ID[day_key.weekday()]
             schedule = sched_map.get((user.id, day_name))
 
@@ -504,6 +505,7 @@ def work_hours_recap(
             daily_details.append({
                 "tanggal": day_key.isoformat(),
                 "hari": day_name,
+                "shift": shift_key + 1,
                 "masuk": masuk_time.strftime("%H:%M") if masuk_time else "-",
                 "pulang": pulang_time.strftime("%H:%M") if pulang_time else "-",
                 "jadwal_masuk": scheduled_start.strftime("%H:%M") if scheduled_start else "-",
