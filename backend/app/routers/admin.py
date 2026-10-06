@@ -477,18 +477,23 @@ def work_hours_recap(
                 if diff > 60:  # lebih dari 1 jam toleransi
                     late_minutes = int(diff)
 
-            # Hitung durasi kerja
+            # Hitung durasi kerja (handle overnight shift)
             work_minutes = 0
             if masuk and pulang:
-                work_minutes = int((pulang.waktu - masuk.waktu).total_seconds() / 60)
+                diff_seconds = (pulang.waktu - masuk.waktu).total_seconds()
+                if diff_seconds < 0:
+                    diff_seconds += 24 * 3600
+                work_minutes = int(diff_seconds / 60)
 
-            # Hitung overtime (lebih dari jam keluar jadwal + 1 jam toleransi)
+# Hitung overtime (lebih dari jam keluar jadwal + 1 jam toleransi) - handle overnight
             overtime_minutes = 0
             if pulang and scheduled_end:
                 pulang_dt = datetime.combine(day_key, pulang_time)
                 sched_end_dt = datetime.combine(day_key, scheduled_end)
+                if pulang_dt < masuk.waktu:
+                    pulang_dt += timedelta(days=1)
                 diff = (pulang_dt - sched_end_dt).total_seconds() / 60
-                if diff > 60:  # lebih dari 1 jam toleransi
+                if diff > 60:
                     overtime_minutes = int(diff)
 
             total_minutes += work_minutes
